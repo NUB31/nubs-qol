@@ -10,6 +10,6 @@ public class NubsQol implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        LOGGER.info("Initializing fabric mod!");
+        LOGGER.info(String.format("Initializing %s", MOD_ID));
     }
 }
