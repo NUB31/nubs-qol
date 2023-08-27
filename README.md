@@ -33,10 +33,16 @@ When having an open container, hold the left mouse button and drag to instantly 
 
 The following features requires the mod to be installed on the client
 
-* Hit living entities through all non-solid blocks (fern, grass, tall grass)
+* Hit living entities through all non-solid blocks such as sugar cane, tall grass and fern when right-clicking
     * [x] Basic Implementation
     * [ ] Settings section
         * [ ] Main toggle
+
+
+* Setting menu
+    * [ ] Layout
+    * [ ] Keybinding
+    * [ ] Toggles
 
 
 * Inventory/container sorting
@@ -66,7 +72,7 @@ The following features requires the mod to be installed both on the client and t
 
 * Take off by right-clicking with a firework rocket
     * [x] Basic Implementation
-    * [ ] Ignore non-solid blocks such as grass, tall grass and fern when right-clicking
+    * [x] Ignore non-solid blocks such as sugar cane, tall grass and fern when right-clicking
     * [ ] Disable functionality if server is not running the mod
     * [ ] Settings menu
         * [ ] Main toggle

@@ -15,7 +15,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(FireworkRocketItem.class)
-public class FireworkRocketItemMixin {
+abstract class FireworkRocketItemMixin {
 	@Inject(at = @At("HEAD"), method = "use")
 	private void useItem(World world, PlayerEntity player, Hand hand, CallbackInfoReturnable<TypedActionResult<ItemStack>> cir) {
 		if (Helpers.isWearingItemOfType(player, EquipmentSlot.CHEST, ElytraItem.class) && !player.inPowderSnow && !player.isFallFlying()) {

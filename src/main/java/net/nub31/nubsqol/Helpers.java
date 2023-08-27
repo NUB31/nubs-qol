@@ -10,15 +10,16 @@ import net.minecraft.item.ArmorItem;
 import net.minecraft.item.ElytraItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.RaycastContext;
 import net.minecraft.world.World;
 
 public class Helpers {
-	// Find an entity in the player's range
 	public static Entity findMobInPlayerRange(PlayerEntity player, World world, ClientPlayerInteractionManager interactionManager) {
 		float playerReachDistance = interactionManager.getReachDistance();
 
@@ -80,4 +81,10 @@ public class Helpers {
 		return false;
 	}
 
+	public static boolean isBlockSolid(World world, HitResult hitResult) {
+		BlockHitResult blockHitResult = (BlockHitResult) hitResult;
+		BlockPos blockPos = blockHitResult.getBlockPos();
+
+		return world.getBlockState(blockPos).getCollisionShape(world, blockPos).isEmpty();
+	}
 }
