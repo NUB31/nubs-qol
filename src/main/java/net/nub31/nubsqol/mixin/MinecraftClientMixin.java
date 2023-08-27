@@ -5,25 +5,22 @@ import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayerInteractionManager;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.Tameable;
-import net.minecraft.entity.projectile.ProjectileUtil;
-import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.item.Items;
+import net.minecraft.util.Hand;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.RaycastContext;
+import net.nub31.nubsqol.Helpers;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-
 @Mixin(MinecraftClient.class)
-public abstract class MinecraftClientMixin {
+abstract class MinecraftClientMixin {
 	@Shadow
 	@Nullable
 	public ClientPlayerEntity player;
@@ -40,66 +37,44 @@ public abstract class MinecraftClientMixin {
 	@Nullable
 	public ClientPlayerInteractionManager interactionManager;
 
+	public boolean skipBlockBreaking = false;
 
+	@Inject(at = @At("HEAD"), method = "doItemUse")
+	private void doItemUse(CallbackInfo ci) {
+
+	}
+
+	// If using firework rockets and targeting a non-solid block, ignore the non-solid block
+	@Redirect(method = "doItemUse", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/hit/HitResult;getType()Lnet/minecraft/util/hit/HitResult$Type;"))
+	private HitResult.Type getType(HitResult instance) {
+		if (this.world.isClient && this.crosshairTarget.getType() == HitResult.Type.BLOCK && (this.player.getStackInHand(Hand.MAIN_HAND).getItem() == Items.FIREWORK_ROCKET || this.player.getStackInHand(Hand.OFF_HAND).getItem() == Items.FIREWORK_ROCKET) && Helpers.isBlockSolid(this.world, this.crosshairTarget)) {
+			return HitResult.Type.MISS;
+		} else {
+			return instance.getType();
+		}
+	}
+
+	// Redirect attacks to mobs if a mob is present in a non-solid block
 	@Inject(at = @At("HEAD"), method = "doAttack")
 	private void doAttack(CallbackInfoReturnable<Boolean> cir) {
+		skipBlockBreaking = false;
+
 		if (this.world.isClient && this.crosshairTarget.getType() == HitResult.Type.BLOCK) {
-			BlockHitResult blockHitResult = (BlockHitResult) this.crosshairTarget;
-			BlockPos blockPos = blockHitResult.getBlockPos();
-
-			// Check if block is solid
-			if (this.world.getBlockState(blockPos).getCollisionShape(world, blockPos).isEmpty()) {
+			if (Helpers.isBlockSolid(this.world, this.crosshairTarget)) {
 				// Check for entities within the non-solid block's bounds
-				Entity entityInBlock = findEntityInPlayerRange();
+				Entity mobInPlayerRange = Helpers.findMobInPlayerRange(this.player, this.world, this.interactionManager);
 
-				if (entityInBlock != null) this.crosshairTarget = new EntityHitResult(entityInBlock);
+				if (mobInPlayerRange != null) {
+					skipBlockBreaking = true;
+					this.crosshairTarget = new EntityHitResult(mobInPlayerRange);
+				}
 			}
 		}
 	}
 
-	// Find an entity in the player's range
-	private Entity findEntityInPlayerRange() {
-		float playerReachDistance = this.interactionManager.getReachDistance();
-
-		Vec3d camera = this.player.getCameraPosVec(1.0F);
-		Vec3d rotation = this.player.getRotationVec(1.0F);
-
-		HitResult hitResult = this.world.raycast(
-				new RaycastContext(
-						camera,
-						camera.add(
-								rotation.x * playerReachDistance,
-								rotation.y * playerReachDistance,
-								rotation.z * playerReachDistance
-						),
-						RaycastContext.ShapeType.COLLIDER,
-						RaycastContext.FluidHandling.NONE,
-						this.player
-				)
-		);
-
-		Vec3d end = hitResult.getType() != HitResult.Type.MISS
-				? hitResult.getPos()
-				: camera.add(
-				rotation.x * playerReachDistance,
-				rotation.y * playerReachDistance,
-				rotation.z * playerReachDistance
-		);
-
-		EntityHitResult result = ProjectileUtil.getEntityCollision(
-				world,
-				this.player,
-				camera,
-				end,
-				new Box(camera, end),
-				// Don't attack spectators, non-hittable entities and pets of the player
-				entity -> !entity.isSpectator() && entity.canHit() && !(entity instanceof Tameable tameable && tameable.getOwner().equals(player))
-		);
-
-		if (result != null) {
-			return result.getEntity();
-		} else {
-			return null;
-		}
+	// Make sure blocks are not broken if a block attack is redirected to an entity
+	@Inject(at = @At("HEAD"), method = "handleBlockBreaking", cancellable = true)
+	private void handleBlockBreaking(boolean breaking, CallbackInfo ci) {
+		if (skipBlockBreaking) ci.cancel();
 	}
 }
