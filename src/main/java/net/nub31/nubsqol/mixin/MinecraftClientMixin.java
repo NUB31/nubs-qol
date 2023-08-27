@@ -5,22 +5,18 @@ import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayerInteractionManager;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.Tameable;
-import net.minecraft.entity.projectile.ProjectileUtil;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.RaycastContext;
+import net.nub31.nubsqol.Helpers;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-
 
 @Mixin(MinecraftClient.class)
 public abstract class MinecraftClientMixin {
@@ -39,67 +35,39 @@ public abstract class MinecraftClientMixin {
 	@Shadow
 	@Nullable
 	public ClientPlayerInteractionManager interactionManager;
+	
+	public boolean skipBlockBreaking = false;
 
 
+	// Redirect attacks to mobs if a mob is present in a non-solid block
 	@Inject(at = @At("HEAD"), method = "doAttack")
 	private void doAttack(CallbackInfoReturnable<Boolean> cir) {
-		if (this.world.isClient && this.crosshairTarget.getType() == HitResult.Type.BLOCK) {
-			BlockHitResult blockHitResult = (BlockHitResult) this.crosshairTarget;
-			BlockPos blockPos = blockHitResult.getBlockPos();
+		skipBlockBreaking = false;
 
-			// Check if block is solid
-			if (this.world.getBlockState(blockPos).getCollisionShape(world, blockPos).isEmpty()) {
-				// Check for entities within the non-solid block's bounds
-				Entity entityInBlock = findEntityInPlayerRange();
+		if (this.world.isClient) {
+			switch (this.crosshairTarget.getType()) {
+				case BLOCK:
+					BlockHitResult blockHitResult = (BlockHitResult) this.crosshairTarget;
+					BlockPos blockPos = blockHitResult.getBlockPos();
 
-				if (entityInBlock != null) this.crosshairTarget = new EntityHitResult(entityInBlock);
+					// Check if block is solid
+					if (this.world.getBlockState(blockPos).getCollisionShape(world, blockPos).isEmpty()) {
+						// Check for entities within the non-solid block's bounds
+						Entity mobInPlayerRange = Helpers.findMobInPlayerRange(this.player, this.world, this.interactionManager);
+
+						if (mobInPlayerRange != null) {
+							skipBlockBreaking = true;
+							this.crosshairTarget = new EntityHitResult(mobInPlayerRange);
+						}
+					}
+					break;
 			}
 		}
 	}
 
-	// Find an entity in the player's range
-	private Entity findEntityInPlayerRange() {
-		float playerReachDistance = this.interactionManager.getReachDistance();
-
-		Vec3d camera = this.player.getCameraPosVec(1.0F);
-		Vec3d rotation = this.player.getRotationVec(1.0F);
-
-		HitResult hitResult = this.world.raycast(
-				new RaycastContext(
-						camera,
-						camera.add(
-								rotation.x * playerReachDistance,
-								rotation.y * playerReachDistance,
-								rotation.z * playerReachDistance
-						),
-						RaycastContext.ShapeType.COLLIDER,
-						RaycastContext.FluidHandling.NONE,
-						this.player
-				)
-		);
-
-		Vec3d end = hitResult.getType() != HitResult.Type.MISS
-				? hitResult.getPos()
-				: camera.add(
-				rotation.x * playerReachDistance,
-				rotation.y * playerReachDistance,
-				rotation.z * playerReachDistance
-		);
-
-		EntityHitResult result = ProjectileUtil.getEntityCollision(
-				world,
-				this.player,
-				camera,
-				end,
-				new Box(camera, end),
-				// Don't attack spectators, non-hittable entities and pets of the player
-				entity -> !entity.isSpectator() && entity.canHit() && !(entity instanceof Tameable tameable && tameable.getOwner().equals(player))
-		);
-
-		if (result != null) {
-			return result.getEntity();
-		} else {
-			return null;
-		}
+	// Make sure blocks are not broken if a block attack is redirected to an entity
+	@Inject(at = @At("HEAD"), method = "handleBlockBreaking", cancellable = true)
+	private void handleBlockBreaking(boolean breaking, CallbackInfo ci) {
+		if (skipBlockBreaking) ci.cancel();
 	}
 }

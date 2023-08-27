@@ -8,6 +8,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.Hand;
 import net.minecraft.util.TypedActionResult;
 import net.minecraft.world.World;
+import net.nub31.nubsqol.Helpers;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -17,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class FireworkRocketItemMixin {
 	@Inject(at = @At("HEAD"), method = "use")
 	private void useItem(World world, PlayerEntity player, Hand hand, CallbackInfoReturnable<TypedActionResult<ItemStack>> cir) {
-		if (isWearingElytra(player) && !player.inPowderSnow && !player.isFallFlying()) {
+		if (Helpers.isWearingItemOfType(player, EquipmentSlot.CHEST, ElytraItem.class) && !player.inPowderSnow && !player.isFallFlying()) {
 			// Client side code
 			if (world.isClient && player.groundCollision) {
 				player.jump();
@@ -28,9 +29,5 @@ public class FireworkRocketItemMixin {
 				player.startFallFlying();
 			}
 		}
-	}
-
-	private boolean isWearingElytra(PlayerEntity player) {
-		return player.getEquippedStack(EquipmentSlot.CHEST).getItem() instanceof ElytraItem;
 	}
 }
