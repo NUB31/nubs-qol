@@ -17,12 +17,6 @@
   "entrypoints": {
     "main": [
       "net.nub31.nubsqol.NubsQol"
-    ],
-    "client": [
-      "net.nub31.nubsqol.NubsQolClient"
-    ],
-    "fabric-datagen": [
-      "net.nub31.nubsqol.NubsQolDataGenerator"
     ]
   },
   "mixins": [

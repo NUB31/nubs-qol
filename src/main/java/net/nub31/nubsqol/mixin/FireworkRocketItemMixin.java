@@ -15,12 +15,22 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(FireworkRocketItem.class)
 public class FireworkRocketItemMixin {
-    @Inject(at = @At("HEAD"), method = "use")
-    private void useItem(World world, PlayerEntity user, Hand hand, CallbackInfoReturnable<TypedActionResult<ItemStack>> cir) {
-        if (user.getEquippedStack(EquipmentSlot.CHEST).getItem() instanceof ElytraItem && user.isSneaking() && !user.isFallFlying()) {
-            if (world.isClient) user.jump();
-            // Has to be done on the server unfortunately
-            if (!world.isClient) user.startFallFlying();
-        }
-    }
+	@Inject(at = @At("HEAD"), method = "use")
+	private void useItem(World world, PlayerEntity player, Hand hand, CallbackInfoReturnable<TypedActionResult<ItemStack>> cir) {
+		if (isWearingElytra(player) && !player.inPowderSnow && !player.isFallFlying()) {
+			// Client side code
+			if (world.isClient && player.groundCollision) {
+				player.jump();
+			}
+
+			// Server side code
+			if (!world.isClient) {
+				player.startFallFlying();
+			}
+		}
+	}
+
+	private boolean isWearingElytra(PlayerEntity player) {
+		return player.getEquippedStack(EquipmentSlot.CHEST).getItem() instanceof ElytraItem;
+	}
 }

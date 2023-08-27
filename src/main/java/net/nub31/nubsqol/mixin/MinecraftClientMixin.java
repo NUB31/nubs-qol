@@ -1,228 +1,105 @@
 package net.nub31.nubsqol.mixin;
 
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayerInteractionManager;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.Tameable;
 import net.minecraft.entity.projectile.ProjectileUtil;
-import net.minecraft.item.Items;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
-import net.minecraft.util.hit.HitResult.Type;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.RaycastContext;
-import net.minecraft.world.RaycastContext.FluidHandling;
-import net.minecraft.world.RaycastContext.ShapeType;
-import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 
 @Mixin(MinecraftClient.class)
 public abstract class MinecraftClientMixin {
+	@Shadow
+	@Nullable
+	public ClientPlayerEntity player;
 
-    @Shadow
-    @Final
-    private static Logger LOGGER;
-    @Shadow
-    @Nullable
-    public ClientPlayerInteractionManager interactionManager;
-    @Shadow
-    @Nullable
-    public ClientPlayerEntity player;
-    @Shadow
-    @Nullable
-    public ClientWorld world;
+	@Shadow
+	@Nullable
+	public ClientWorld world;
 
-    // Redirect the attack behavior to handle custom interactions
-    @Redirect(
-            method = "doAttack",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/client/world/ClientWorld;getBlockState(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/BlockState;",
-                    ordinal = 0
-            )
-    )
-    private BlockState onAttack(ClientWorld world, BlockPos pos) {
-        // Get the block state at the specified position
-        BlockState blockState = world.getBlockState(pos);
+	@Shadow
+	@Nullable
+	public HitResult crosshairTarget;
 
-        // If the block is air, no further action is needed
-        if (blockState.isAir()) {
-            return blockState;
-        }
-
-        // Find an interactable entity, if present
-        Entity target = findInteractableEntity(blockState, world, pos);
-
-        if (target != null) {
-            // Attack the interactable entity
-            this.interactionManager.attackEntity(this.player, target);
-            // Set the block state to air, ignoring the original block
-            return Blocks.AIR.getDefaultState();
-        }
-
-        // Return the original block state if no interaction is performed
-        return blockState;
-    }
+	@Shadow
+	@Nullable
+	public ClientPlayerInteractionManager interactionManager;
 
 
-    // Redirect item use behavior to handle custom interactions
-    @Redirect(
-            method = "doItemUse",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/client/network/ClientPlayerInteractionManager;interactBlock(Lnet/minecraft/client/network/ClientPlayerEntity;Lnet/minecraft/util/Hand;Lnet/minecraft/util/hit/BlockHitResult;)Lnet/minecraft/util/ActionResult;"
-            )
-    )
-    private ActionResult onItemUse(
-            ClientPlayerInteractionManager instance,
-            ClientPlayerEntity player,
-            Hand hand,
-            BlockHitResult hitResult
-    ) {
-        // Find an interactable entity, if present
-        Entity target = findInteractableEntity(
-                this.world.getBlockState(hitResult.getBlockPos()),
-                this.world,
-                hitResult.getBlockPos()
-        );
+	@Inject(at = @At("HEAD"), method = "doAttack")
+	private void doAttack(CallbackInfoReturnable<Boolean> cir) {
+		if (this.world.isClient && this.crosshairTarget.getType() == HitResult.Type.BLOCK) {
+			BlockHitResult blockHitResult = (BlockHitResult) this.crosshairTarget;
+			BlockPos blockPos = blockHitResult.getBlockPos();
 
-        if (target != null) {
-            // Attempt a custom interaction with the entity
-            ActionResult actionResult = this.interactionManager.interactEntityAtLocation(
-                    this.player,
-                    target,
-                    new EntityHitResult(target),
-                    hand
-            );
+			// Check if block is solid
+			if (this.world.getBlockState(blockPos).getCollisionShape(world, blockPos).isEmpty()) {
+				// Check for entities within the non-solid block's bounds
+				Entity entityInBlock = findEntityInPlayerRange();
 
-            // If the custom interaction is not accepted, try a different interaction
-            if (!actionResult.isAccepted()) {
-                actionResult = this.interactionManager.interactEntity(this.player, target, hand);
-            }
+				if (entityInBlock != null) this.crosshairTarget = new EntityHitResult(entityInBlock);
+			}
+		}
+	}
 
-            // If still not accepted, return a pass result
-            if (!actionResult.isAccepted()) {
-                return ActionResult.PASS;
-            }
+	// Find an entity in the player's range
+	private Entity findEntityInPlayerRange() {
+		float playerReachDistance = this.interactionManager.getReachDistance();
 
-            // If the custom interaction requires a hand swing, perform it and return a fail result
-            if (actionResult.shouldSwingHand()) {
-                this.player.swingHand(hand);
-                return ActionResult.FAIL;
-            }
-        } else if (player.getMainHandStack().getItem() == Items.FIREWORK_ROCKET) {
-            // If the block has a collision shape, it can't be interacted with
-            if (!isBlockSolid(this.world.getBlockState(hitResult.getBlockPos()), hitResult.getBlockPos())) {
+		Vec3d camera = this.player.getCameraPosVec(1.0F);
+		Vec3d rotation = this.player.getRotationVec(1.0F);
 
-                ActionResult actionResult = this.interactionManager.interactItem(player, hand);
+		HitResult hitResult = this.world.raycast(
+				new RaycastContext(
+						camera,
+						camera.add(
+								rotation.x * playerReachDistance,
+								rotation.y * playerReachDistance,
+								rotation.z * playerReachDistance
+						),
+						RaycastContext.ShapeType.COLLIDER,
+						RaycastContext.FluidHandling.NONE,
+						this.player
+				)
+		);
 
-                // If still not accepted, return a pass result
-                if (!actionResult.isAccepted()) {
-                    return ActionResult.PASS;
-                }
+		Vec3d end = hitResult.getType() != HitResult.Type.MISS
+				? hitResult.getPos()
+				: camera.add(
+				rotation.x * playerReachDistance,
+				rotation.y * playerReachDistance,
+				rotation.z * playerReachDistance
+		);
 
-                // If the custom interaction requires a hand swing, perform it and return a fail result
-                if (actionResult.shouldSwingHand()) {
-                    this.player.swingHand(hand);
-                    return ActionResult.FAIL;
-                }
-            }
+		EntityHitResult result = ProjectileUtil.getEntityCollision(
+				world,
+				this.player,
+				camera,
+				end,
+				new Box(camera, end),
+				// Don't attack spectators, non-hittable entities and pets of the player
+				entity -> !entity.isSpectator() && entity.canHit() && !(entity instanceof Tameable tameable && tameable.getOwner().equals(player))
+		);
 
-
-        }
-
-        // If no custom interaction, perform the default block interaction
-        return this.interactionManager.interactBlock(this.player, hand, hitResult);
-    }
-
-
-    // Find an interactable entity based on the block state
-    private Entity findInteractableEntity(BlockState blockState, World world, BlockPos pos) {
-        // If the block has a collision shape, it can't be interacted with
-        if (isBlockSolid(blockState, pos)) return null;
-
-        // Get the player's reach distance
-        float playerReachDistance = this.interactionManager.getReachDistance();
-
-        // Compute the camera and rotation vectors for raycasting
-        Vec3d camera = this.player.getCameraPosVec(1.0F);
-        Vec3d rotation = this.player.getRotationVec(1.0F);
-
-        // Perform a raycast to find an entity
-        HitResult hitResult = world.raycast(
-                new RaycastContext(
-                        camera,
-                        camera.add(
-                                rotation.x * playerReachDistance,
-                                rotation.y * playerReachDistance,
-                                rotation.z * playerReachDistance
-                        ),
-                        ShapeType.COLLIDER,
-                        FluidHandling.NONE,
-                        this.player
-                )
-        );
-
-        // Determine the endpoint for the raycast
-        Vec3d end = hitResult.getType() != Type.MISS
-                ? hitResult.getPos()
-                : camera.add(
-                rotation.x * playerReachDistance,
-                rotation.y * playerReachDistance,
-                rotation.z * playerReachDistance
-        );
-
-        // Find a collision with an entity
-        EntityHitResult result = ProjectileUtil.getEntityCollision(
-                world,
-                this.player,
-                camera,
-                end,
-                new Box(camera, end),
-                entity -> shouldAttackEntity(entity)
-        );
-
-        // Return the found entity or null
-        return (result != null) ? result.getEntity() : null;
-    }
-
-
-    // Determine whether an entity should be attacked based on certain conditions
-    private boolean shouldAttackEntity(Entity entity) {
-        // Don't attack spectators or entities that cannot be damaged
-        if (entity.isSpectator() || !entity.canHit()) {
-            return false;
-        }
-
-        // Don't attack pets of the player
-        if (entity instanceof Tameable tameableEntity) {
-            LivingEntity owner = tameableEntity.getOwner();
-            return owner == null || !owner.equals(this.player);
-        }
-
-        // Attack all other entities
-        return true;
-    }
-
-    private boolean isBlockSolid(BlockState blockState, BlockPos pos) {
-        // If the block has a collision shape, it can't be interacted with
-        return !blockState.getCollisionShape(world, pos).isEmpty();
-    }
+		if (result != null) {
+			return result.getEntity();
+		} else {
+			return null;
+		}
+	}
 }
