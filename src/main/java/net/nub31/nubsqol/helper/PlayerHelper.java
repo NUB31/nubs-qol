@@ -1,5 +1,7 @@
-package net.nub31.nubsqol;
+package net.nub31.nubsqol.helper;
 
+import net.minecraft.client.network.ClientPlayNetworkHandler;
+import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayerInteractionManager;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EquipmentSlot;
@@ -10,17 +12,56 @@ import net.minecraft.item.ArmorItem;
 import net.minecraft.item.ElytraItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket;
+import net.minecraft.util.Hand;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.RaycastContext;
 import net.minecraft.world.World;
 
-public class Helpers {
-	public static Entity findMobInPlayerRange(PlayerEntity player, World world, ClientPlayerInteractionManager interactionManager) {
+public class PlayerHelper {
+	private final PlayerEntity player;
+
+	public PlayerHelper(PlayerEntity player) {
+		this.player = player;
+	}
+
+	public <Item> boolean isHoldingItem(Item item) {
+		return (player.getStackInHand(Hand.MAIN_HAND).getItem() == item || player.getStackInHand(Hand.OFF_HAND).getItem() == item);
+	}
+
+	public <T extends Item> boolean isWearingItemOfType(EquipmentSlot equipmentSlot, Class<T> itemType) {
+		ItemStack stack = player.getEquippedStack(equipmentSlot);
+
+		if (itemType.isInstance(stack.getItem())) {
+			if (itemType.equals(ElytraItem.class) && equipmentSlot == EquipmentSlot.CHEST) {
+				return true;
+			}
+
+			if (stack.getItem() instanceof ArmorItem armorItem) {
+				return itemType.isInstance(armorItem);
+			}
+		}
+
+		return false;
+	}
+
+	public void sendStartFallFlyingPacket() {
+		ClientPlayerEntity clientPlayerEntity = (ClientPlayerEntity) player;
+		ClientPlayNetworkHandler networkHandler = clientPlayerEntity.networkHandler;
+
+		try {
+			Thread.sleep(10);
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e);
+		}
+
+		networkHandler.sendPacket(new ClientCommandC2SPacket(player, ClientCommandC2SPacket.Mode.START_FALL_FLYING));
+	}
+
+	public Entity findMobInPlayerCrosshair(World world, ClientPlayerInteractionManager interactionManager) {
 		float playerReachDistance = interactionManager.getReachDistance();
 
 		Vec3d camera = player.getCameraPosVec(1.0F);
@@ -63,28 +104,5 @@ public class Helpers {
 		} else {
 			return null;
 		}
-	}
-
-	public static <T extends Item> boolean isWearingItemOfType(PlayerEntity player, EquipmentSlot equipmentSlot, Class<T> itemType) {
-		ItemStack stack = player.getEquippedStack(equipmentSlot);
-
-		if (itemType.isInstance(stack.getItem())) {
-			if (itemType.equals(ElytraItem.class) && equipmentSlot == EquipmentSlot.CHEST) {
-				return true;
-			}
-
-			if (stack.getItem() instanceof ArmorItem armorItem) {
-				return itemType.isInstance(armorItem);
-			}
-		}
-
-		return false;
-	}
-
-	public static boolean isBlockSolid(World world, HitResult hitResult) {
-		BlockHitResult blockHitResult = (BlockHitResult) hitResult;
-		BlockPos blockPos = blockHitResult.getBlockPos();
-
-		return world.getBlockState(blockPos).getCollisionShape(world, blockPos).isEmpty();
 	}
 }
