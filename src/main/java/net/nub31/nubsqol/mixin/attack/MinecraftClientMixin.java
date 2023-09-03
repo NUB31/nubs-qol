@@ -18,7 +18,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-
 @Mixin(MinecraftClient.class)
 abstract class MinecraftClientMixin {
 	@Shadow
@@ -39,7 +38,6 @@ abstract class MinecraftClientMixin {
 
 	@Unique
 	public boolean skipBlockBreaking = false;
-
 
 	// Redirect attacks to mobs if a mob is present in a non-solid block
 	@Inject(at = @At("HEAD"), method = "doAttack")

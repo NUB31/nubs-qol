@@ -1,4 +1,4 @@
-package net.nub31.nubsqol;
+package net.nub31.nubsqol.constant;
 
 public enum RunningConfig {
 	CLIENT_ONLY,
