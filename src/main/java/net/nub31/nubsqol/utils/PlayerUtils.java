@@ -1,4 +1,4 @@
-package net.nub31.nubsqol.helper;
+package net.nub31.nubsqol.utils;
 
 import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.client.network.ClientPlayerEntity;
@@ -21,10 +21,10 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.RaycastContext;
 import net.minecraft.world.World;
 
-public class PlayerHelper {
+public class PlayerUtils {
 	private final PlayerEntity player;
 
-	public PlayerHelper(PlayerEntity player) {
+	public PlayerUtils(PlayerEntity player) {
 		this.player = player;
 	}
 
@@ -51,12 +51,6 @@ public class PlayerHelper {
 	public void sendStartFallFlyingPacket() {
 		ClientPlayerEntity clientPlayerEntity = (ClientPlayerEntity) player;
 		ClientPlayNetworkHandler networkHandler = clientPlayerEntity.networkHandler;
-
-		try {
-			Thread.sleep(10);
-		} catch (InterruptedException e) {
-			throw new RuntimeException(e);
-		}
 
 		networkHandler.sendPacket(new ClientCommandC2SPacket(player, ClientCommandC2SPacket.Mode.START_FALL_FLYING));
 	}

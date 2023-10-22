@@ -5,8 +5,8 @@ import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.item.Items;
 import net.minecraft.util.hit.HitResult;
-import net.nub31.nubsqol.helper.BlockHelper;
-import net.nub31.nubsqol.helper.PlayerHelper;
+import net.nub31.nubsqol.utils.BlockUtils;
+import net.nub31.nubsqol.utils.PlayerUtils;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -35,11 +35,11 @@ abstract class MinecraftClientMixin {
 				|| this.crosshairTarget == null
 		) return instance.getType();
 
-		PlayerHelper playerHelper = new PlayerHelper(this.player);
-		BlockHelper blockHelper = new BlockHelper(this.world);
+		PlayerUtils playerUtils = new PlayerUtils(this.player);
+		BlockUtils blockHelper = new BlockUtils(this.world);
 
 		if (this.world.isClient
-				&& playerHelper.isHoldingItem(Items.FIREWORK_ROCKET)
+				&& playerUtils.isHoldingItem(Items.FIREWORK_ROCKET)
 				&& blockHelper.isSolid(this.crosshairTarget)
 		) {
 			return HitResult.Type.MISS;

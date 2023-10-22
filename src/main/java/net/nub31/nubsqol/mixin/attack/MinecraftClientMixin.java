@@ -7,8 +7,8 @@ import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
-import net.nub31.nubsqol.helper.BlockHelper;
-import net.nub31.nubsqol.helper.PlayerHelper;
+import net.nub31.nubsqol.utils.BlockUtils;
+import net.nub31.nubsqol.utils.PlayerUtils;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -49,11 +49,11 @@ abstract class MinecraftClientMixin {
 				&& this.interactionManager != null
 				&& this.player != null
 		) {
-			BlockHelper blockHelper = new BlockHelper(this.world);
-			PlayerHelper playerHelper = new PlayerHelper(this.player);
+			BlockUtils blockHelper = new BlockUtils(this.world);
+			PlayerUtils playerUtils = new PlayerUtils(this.player);
 
 			if (this.world.isClient && blockHelper.isSolid(this.crosshairTarget)) {
-				Entity mobInPlayerRange = playerHelper.findMobInPlayerCrosshair(this.world, this.interactionManager);
+				Entity mobInPlayerRange = playerUtils.findMobInPlayerCrosshair(this.world, this.interactionManager);
 
 				if (mobInPlayerRange != null) {
 					skipBlockBreaking = true;

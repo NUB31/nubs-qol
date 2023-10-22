@@ -1,14 +1,14 @@
-package net.nub31.nubsqol.helper;
+package net.nub31.nubsqol.utils;
 
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
-public class BlockHelper {
+public class BlockUtils {
 	private final World world;
 
-	public BlockHelper(World world) {
+	public BlockUtils(World world) {
 
 		this.world = world;
 	}
