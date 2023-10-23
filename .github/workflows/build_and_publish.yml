@@ -33,5 +33,5 @@ jobs:
         
     - uses: Kir-Antipov/mc-publish@v3.3
       with:
-        modrinth-id: AANobbMI
+        modrinth-id: bYwHgKTK
         modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
