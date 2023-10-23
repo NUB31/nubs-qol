@@ -1,59 +1,49 @@
 name: Publish on GitHub & Modrinth
 
 on:
-  release:
-    types: [published]
-  workflow_dispatch:
+    release:
+        types: [published]
+    workflow_dispatch:
 
-env:                                              
-  MINECRAFT_VERSION: 1.20.2
-  JAVA_VERSION: 17
-  RELEASE_NAME: "NUB's QoL Mods"
-  MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
-  GITHUB_TOKEN: ${{ secrets.PAT_GITHUB_TOKEN }}
-  
 permissions:
-  contents: write
+    contents: write
   
 jobs:        
-  publish:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check Environment Variables
-        run: env
-        
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-        with:
-          submodules: true
-          
-      - name: Setup Java
-        uses: actions/setup-java@v2
-        with:
-          distribution: "temurin"
-          java-version: 17
-          
-      - name: Make Gradle Wrapper Executable
-        if: ${{ runner.os != 'Windows' }}
-        run: chmod +x ./gradlew
-        
-      - name: Build
-        run: ./gradlew clean build
-        
-      - name: Publish (CurseForge/Modrinth/GitHub)
-        uses: Kir-Antipov/mc-publish@v3.2
-        with:
-          modrinth-id: bYwHgKTK
-          modrinth-token: "${{env.MODRINTH_TOKEN}}"
-          
-          github-tag: "v${{env.VERSION}}"
-          github-token: "${{env.GITHUB_TOKEN}}"
-          
-          name: "${{env.RELEASE_NAME}} ${{github.ref_name}}-${{env.MINECRAFT_VERSION}}"
-          version: "${{env.VERSION}}"
-          version-type: release
-          changelog-file: CHANGELOG.md
-          
-          loaders: fabric
-          game-versions: "${{env.MINECRAFT_VERSION}}"
-          java: "${{env.JAVA_VERSION}}"
+    publish:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check Environment Variables
+              run: env
+    
+            - name: Checkout Repository
+              uses: actions/checkout@v3
+              with:
+                  submodules: true
+      
+            - name: Setup Java
+              uses: actions/setup-java@v2
+              with:
+                  distribution: "temurin"
+                  java-version: 17
+
+            - name: Make Gradle Wrapper Executable
+              if: ${{ runner.os != 'Windows' }}
+              run: chmod +x ./gradlew
+            
+            - name: Build
+              run: ./gradlew clean build
+            
+            - name: Publish (CurseForge/Modrinth/GitHub)
+              uses: Kir-Antipov/mc-publish@v3.2
+              with:
+                  modrinth-id: bYwHgKTK
+                  modrinth-token: ${{secrets.MODRINTH_TOKEN}}
+                
+                  name: "NUB's QoL Mods ${{github.ref_name}}-${{variables.MINECRAFT_VERSION}}"
+                  version: "${{env.VERSION}}"
+                  version-type: release
+                  changelog-file: CHANGELOG.md
+                
+                  loaders: fabric
+                  game-versions: "${{env.MINECRAFT_VERSION}}"
+                  java: 17
