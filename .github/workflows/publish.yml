@@ -24,7 +24,7 @@ jobs:
               uses: actions/setup-java@v2
               with:
                   distribution: "temurin"
-                  java-version: 17
+                  java-version: ${{variables.JAVA_VERSION}}
 
             - name: Make Gradle Wrapper Executable
               if: ${{ runner.os != 'Windows' }}
@@ -46,4 +46,4 @@ jobs:
                 
                   loaders: fabric
                   game-versions: "${{env.MINECRAFT_VERSION}}"
-                  java: 17
+                  java: ${{variables.JAVA_VERSION}}
