@@ -1,4 +1,4 @@
-name: Publish on GitHub, CurseForge & Modrinth
+name: Publish on GitHub & Modrinth
 
 on: [ pull_request, workflow_dispatch ]
 
@@ -38,6 +38,9 @@ jobs:
       - name: Build
         run: ./gradlew clean build
         
+  publish:
+    runs-on: ubuntu-latest
+    steps:
       - name: Publish (CurseForge/Modrinth/GitHub)
         uses: Kir-Antipov/mc-publish@v3.2
         with:
