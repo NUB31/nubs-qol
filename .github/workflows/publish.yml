@@ -24,7 +24,7 @@ jobs:
               uses: actions/setup-java@v2
               with:
                   distribution: "temurin"
-                  java-version: ${{variables.JAVA_VERSION}}
+                  java-version: ${{vars.JAVA_VERSION}}
 
             - name: Make Gradle Wrapper Executable
               if: ${{ runner.os != 'Windows' }}
@@ -39,11 +39,11 @@ jobs:
                   modrinth-id: bYwHgKTK
                   modrinth-token: ${{secrets.MODRINTH_TOKEN}}
                 
-                  name: "NUB's QoL Mods ${{github.ref_name}}-${{variables.MINECRAFT_VERSION}}"
+                  name: "NUB's QoL Mods ${{github.ref_name}}-${{vars.MINECRAFT_VERSION}}"
                   version: "${{env.VERSION}}"
                   version-type: release
                   changelog-file: CHANGELOG.md
                 
                   loaders: fabric
                   game-versions: "${{env.MINECRAFT_VERSION}}"
-                  java: ${{variables.JAVA_VERSION}}
+                  java: ${{vars.JAVA_VERSION}}
