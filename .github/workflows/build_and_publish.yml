@@ -50,7 +50,7 @@ jobs:
           github-tag: "v${{env.VERSION}}"
           github-token: "${{env.GITHUB_TOKEN}}"
           
-          name: "${{env.RELEASE_NAME}} ${{env.MINECRAFT_VERSION}}-${{env.MOD_VERSION}}"
+          name: "${{env.RELEASE_NAME}} ${{env.MOD_VERSION}}-${{env.MINECRAFT_VERSION}}"
           version: "${{env.VERSION}}"
           version-type: release
           changelog-file: CHANGELOG.md
