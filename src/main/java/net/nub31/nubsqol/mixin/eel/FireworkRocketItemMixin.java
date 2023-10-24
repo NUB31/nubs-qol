@@ -19,17 +19,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 abstract class FireworkRocketItemMixin {
 	@Inject(at = @At("HEAD"), method = "use")
 	private void useItem(World world, PlayerEntity player, Hand hand, CallbackInfoReturnable<TypedActionResult<ItemStack>> cir) {
-		if (canUseEasyElytraLaunch(player)) {
-			if (NubsQol.hasServerSupport) {
-				if (world.isClient) {
-					player.jump();
-				} else {
-					player.startFallFlying();
-				}
-			} else if (world.isClient) {
+		if (world.isClient) {
+			if (NubsQol.hasServerSupport && canUseEasyElytraLaunch(player)) {
+				player.jump();
 				PlayerUtils playerUtils = new PlayerUtils(player);
 				playerUtils.sendStartFallFlyingPacket();
 			}
+		} else {
+			player.startFallFlying();
 		}
 	}
 
@@ -38,6 +35,7 @@ abstract class FireworkRocketItemMixin {
 
 		return playerUtils.isWearingItemOfType(EquipmentSlot.CHEST, ElytraItem.class)
 				&& ElytraItem.isUsable(player.getEquippedStack(EquipmentSlot.CHEST))
+				&& player.isOnGround()
 				&& !player.isFallFlying()
 				&& !player.inPowderSnow
 				&& !player.isInLava();
