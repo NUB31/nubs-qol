@@ -21,8 +21,11 @@ abstract class FireworkRocketItemMixin {
 	private void useItem(World world, PlayerEntity player, Hand hand, CallbackInfoReturnable<TypedActionResult<ItemStack>> cir) {
 		if (canUseEasyElytraLaunch(player)) {
 			if (NubsQol.hasServerSupport) {
-				player.jump();
-				player.startFallFlying();
+				if (world.isClient) {
+					player.jump();
+				} else {
+					player.startFallFlying();
+				}
 			} else if (world.isClient) {
 				PlayerUtils playerUtils = new PlayerUtils(player);
 				playerUtils.sendStartFallFlyingPacket();
