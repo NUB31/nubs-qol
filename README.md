@@ -17,13 +17,4 @@ Well how about zero! With easy elytra takeoff, just right click with a firework 
 
 Note: You have to be looking at a non-solid block or in the air for it to work. The rockets will behave normally when looking at a solid block.
 
-Another note: You have to be mid-air to initiate easy elytra launch when the mod is installed client-side only (does not affect single player)
-
-### WIP: Inventory/container sorting
-
-Use a hotkey when hovering over a container to instantly sort them. The default hotkey is middle mouse button, this can
-be changed however
-
-### WIP: Hold and drag item transfer
-
-When having an open container, hold the left mouse button and drag to instantly transfer items to or from the container
+Another note: You have to be midair to initiate easy elytra launch when the mod is installed client-side only (does not affect single player)
